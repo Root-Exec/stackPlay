@@ -4,7 +4,7 @@ buffsize: .word 20
 testString: .asciiz "This is a test\n"
 push: .asciiz "Value pushed to stack\n"
 pop: .asciiz "Value popped from stack\n"
-t1reg: .asciiz "Current value in $t1\n"
+t1reg: .asciiz "Current value in $t1: "
 newLine: .asciiz "\n"
 
 
@@ -68,6 +68,10 @@ jr $ra
 
 
 printT1Reg:
+#print current value of $t1
+li $v0, 4
+la $a0, t1reg
+syscall
 li $v0, 1
 la $a0, ($t1)
 syscall
@@ -75,13 +79,13 @@ syscall
 #using a callee saved register that testProcedure uses to save the return address. Must push to stack
 addi $sp, $sp, -4
 sw $s0, 4($sp)
-#save the return address before JAL links and overwrites $ra 
+#save the return address before JAL links and overwrites $ra on printNewline call. Free to use $s0 since we pushed $s0 to stack
 move $s0, $ra
 jal printNewLine
 #restore the return address into $ra
 move $ra, $s0
-#restore callee saved register for testProcedure to use.
-lw $s0 4($sp)
+#restore callee saved register for testProcedure to use like normal.
+lw $s0, 4($sp)
 addi $sp, $sp, 4
 jr $ra
 	
