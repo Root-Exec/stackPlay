@@ -41,7 +41,7 @@ syscall
 
 jal testProcedure
 
-#restore main's $t1 valuem dec stack pointer
+#restore main's $t1 value dec stack pointer
 lw $t1, 4($sp)
 addi $sp, $sp, 4
 
@@ -53,18 +53,28 @@ syscall
 #print value of $t1 to verify value restored
 jal printT1Reg
 
+#test loading full 32 bit numbers into a register, test number is 2000000 (0x001e8480)
+lui $s2, 0x001e
+ori $s2, $s2, 0x8480
+
+
+#print out full 32 bit number
+li $v0, 1
+la $a0, ($s2)
+syscall
+
 #exit program
 li $v0, 10
 syscall
 
 
+#########procedure listing###########
 
 printNewLine:
 li $v0, 4
 la $a0, newLine
 syscall
 jr $ra
-
 
 
 printT1Reg:
@@ -75,7 +85,6 @@ syscall
 li $v0, 1
 la $a0, ($t1)
 syscall
-
 #using a callee saved register that testProcedure uses to save the return address. Must push to stack
 addi $sp, $sp, -4
 sw $s0, 4($sp)
@@ -95,7 +104,7 @@ testProcedure:
 li $t1, 20
 #printT1Reg will test the nested procedure calls. 
 #printT1Reg is using callee saved registers. Because this is going into nested calls, need to save this procedure's
-#return address because $ra will be overwritten multiple times depending on the call
+#return address because $ra will be overwritten multiple times depending on the call. Using $s0, caller saved register
 move $s0, $ra
 jal printT1Reg
 move $ra, $s0
