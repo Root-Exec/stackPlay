@@ -1,6 +1,7 @@
 	.data
 
 buffsize: .word 20
+pi: .float 3.1459
 testString: .asciiz "This is a test\n"
 push: .asciiz "Value pushed to stack\n"
 pop: .asciiz "Value popped from stack\n"
@@ -18,7 +19,7 @@ li $v0, 4
 la $a0, testString
 syscall
 
-#loading test value into t1
+#loading test value into t1 (100)
 li $t1, 100
 
 #print the test value
@@ -27,10 +28,10 @@ jal printT1Reg
 #alter test value (inc by 100)
 add $t1, $t1, 100
 
-#print altered test value
+#print altered test value (200)
 jal printT1Reg
 
-#about to call procedure that also uses caller saved $t1. Push $t1 to stack
+#push $t1 to stack because $t registers are caller saved
 addi $sp, $sp, -4
 sw $t1, 4($sp)
 
@@ -41,7 +42,7 @@ syscall
 
 jal testProcedure
 
-#restore main's $t1 value dec stack pointer
+#restore main's $t1 value (200, subprocedures changed it to 20) && dec stack pointer
 lw $t1, 4($sp)
 addi $sp, $sp, 4
 
@@ -61,6 +62,10 @@ ori $s2, $s2, 0x8480
 #print out full 32 bit number
 li $v0, 1
 la $a0, ($s2)
+syscall
+
+lwc1 $f12, pi
+li $v0, 2
 syscall
 
 #exit program
@@ -85,27 +90,32 @@ syscall
 li $v0, 1
 la $a0, ($t1)
 syscall
-#using a callee saved register that testProcedure uses to save the return address. Must push to stack
-addi $sp, $sp, -4
-sw $s0, 4($sp)
-#save the return address before JAL links and overwrites $ra on printNewline call. Free to use $s0 since we pushed $s0 to stack
-move $s0, $ra
+
+#push current $ra onto stack and call procedure
+add $sp, $sp, -8
+sw $ra, 8($sp)
+
 jal printNewLine
-#restore the return address into $ra
-move $ra, $s0
-#restore callee saved register for testProcedure to use like normal.
-lw $s0, 4($sp)
-addi $sp, $sp, 4
+
+#restore $ra
+lw $ra, 8($sp)
+add $sp, $sp, 8
 jr $ra
-	
 	
 	
 testProcedure:
 li $t1, 20
-#printT1Reg will test the nested procedure calls. 
-#printT1Reg is using callee saved registers. Because this is going into nested calls, need to save this procedure's
-#return address because $ra will be overwritten multiple times depending on the call. Using $s0, caller saved register
-move $s0, $ra
+#printT1Reg will test the nested procedure calls order of events. 
+
+#save return address to stack
+add $sp, $sp, -8
+sw $ra, 8($sp)
+
+#intentionally not pushing $t1 to stack to call printT1Reg which will verify the new $t1 value (20, previously 200)
+#$t1 is a caller saved register and will normally push $t1 to stack before calling another procedure
 jal printT1Reg
-move $ra, $s0
+
+#restore $ra and return
+lw $ra, 8($sp)
+add $sp, $sp, 8
 jr $ra
